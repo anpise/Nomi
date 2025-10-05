@@ -5,7 +5,7 @@ from claude_handler import get_claude_response
 from db import get_unified_entries
 from datetime import date, timedelta
 
-def handle_summary_analytics(message, username):
+def handle_summary_analytics(message, username, conversation_history=None):
     """Handle summary and analytics requests"""
 
     # Determine what kind of summary is requested
@@ -48,28 +48,28 @@ def generate_daily_summary(username):
     health_entries = [e for e in entries if e.get("use_case") == "health_fitness"]
     note_entries = [e for e in entries if e.get("use_case") == "notes_reminders"]
 
-    system_prompt = f"""You are Nomi, a supportive personal assistant for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a warm 2-4 sentence daily summary that:
-- Celebrates their accomplishments today
-- Mentions key activities (workouts and notes)
-- Sounds encouraging and personal
-- Uses a friendly, supportive tone"""
+CRITICAL: Keep responses SHORT - max 2-3 short sentences.
+
+Rules:
+- Direct address: "You crushed today!" not "{username} crushed today"
+- Celebrate briefly, no elaboration
+- Mention key activities in ONE sentence
+- End with ✓
+- NO lengthy praise, NO extra encouragement"""
 
     health_text = "\n".join([f"- {e['metadata'].get('activity', 'workout')} ({e['metadata'].get('duration', '')})"
                               for e in health_entries]) if health_entries else "No workouts today"
     notes_text = "\n".join([f"- {e['metadata'].get('summary', e.get('message', ''))}"
                              for e in note_entries]) if note_entries else "No notes today"
 
-    prompt = f"""Here's what {username} did today:
+    prompt = f"""Review {username}'s day:
 
-WORKOUTS & HEALTH:
-{health_text}
+WORKOUTS: {health_text}
+NOTES: {notes_text}
 
-NOTES & TASKS:
-{notes_text}
-
-Generate a 2-4 sentence daily summary."""
+Respond in max 2-3 short sentences."""
 
     response = get_claude_response(prompt, system_prompt)
 
@@ -93,22 +93,25 @@ def generate_weekly_summary(username):
         metadata = {"count": 0, "period": "week"}
         return response, metadata
 
-    system_prompt = f"""You are Nomi, a supportive personal assistant for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a brief 3-5 sentence weekly summary that:
-- Highlights key accomplishments this week
-- Mentions workout frequency and note patterns
-- Provides encouraging feedback
-- Sounds warm and supportive"""
+CRITICAL: Keep responses SHORT - max 3-4 short sentences.
+
+Rules:
+- Direct address: "You stayed consistent!"
+- Mention workout count and key pattern in ONE sentence
+- Brief celebration only
+- End with ✓
+- NO lengthy feedback, NO extra encouragement"""
 
     health_entries = [e for e in entries if e.get("use_case") == "health_fitness"]
     note_entries = [e for e in entries if e.get("use_case") == "notes_reminders"]
 
-    prompt = f"""This week {username} logged:
-- {len(health_entries)} workouts/health activities
+    prompt = f"""Review {username}'s week:
+- {len(health_entries)} workouts
 - {len(note_entries)} notes/tasks
 
-Generate a weekly summary celebrating their week."""
+Respond in max 3-4 short sentences."""
 
     response = get_claude_response(prompt, system_prompt)
 
@@ -132,22 +135,26 @@ def generate_insights(username):
         metadata = {"count": 0, "period": "insights"}
         return response, metadata
 
-    system_prompt = f"""You are Nomi, an analytical assistant for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate 2-3 sentence insights about their habits and patterns that:
-- Identifies positive trends
-- Provides actionable suggestions
-- Sounds encouraging and data-informed"""
+CRITICAL: Keep responses SHORT - max 2-3 short sentences.
+
+Rules:
+- Direct address: "You're most active in mornings"
+- Identify ONE key pattern
+- ONE brief actionable tip
+- End with ✓
+- NO lengthy analysis, NO extra suggestions"""
 
     health_entries = [e for e in entries if e.get("use_case") == "health_fitness"]
     note_entries = [e for e in entries if e.get("use_case") == "notes_reminders"]
 
-    prompt = f"""Analyze {username}'s activity over the past week:
-- Total entries: {len(entries)}
-- Workout frequency: {len(health_entries)} sessions
-- Notes logged: {len(note_entries)}
+    prompt = f"""{username}'s past week:
+- Total: {len(entries)}
+- Workouts: {len(health_entries)}
+- Notes: {len(note_entries)}
 
-Generate insights about patterns and suggestions."""
+Share ONE key insight in max 2-3 short sentences."""
 
     response = get_claude_response(prompt, system_prompt)
 

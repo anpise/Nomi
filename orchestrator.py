@@ -6,6 +6,11 @@ from claude_handler import get_claude_response
 
 def classify_use_case(message):
     """Classify message into specific use case category"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"Classifying message: {message[:50]}...")
+
     system_prompt = """You are a use case classifier for Nomi, a personal assistant.
 
 Classify the user's message into ONE of these categories:
@@ -28,14 +33,21 @@ If unclear, default to "notes_reminders"."""
 
     valid_cases = ["health_fitness", "notes_reminders", "summary_analytics", "motivation_wellbeing"]
     if use_case not in valid_cases:
+        logger.warning(f"Invalid use case '{use_case}', defaulting to notes_reminders")
         return "notes_reminders"
 
+    logger.info(f"Classified as: {use_case}")
     return use_case
 
-def route_message(message, username, use_case=None):
+def route_message(message, username, use_case=None, conversation_history=None):
     """Route message to appropriate handler based on use case"""
+    import logging
+    logger = logging.getLogger(__name__)
+
     if not use_case:
         use_case = classify_use_case(message)
+
+    logger.info(f"Routing message for user '{username}' to handler: {use_case}")
 
     # Import handlers
     from health_handler import handle_health_fitness
@@ -54,7 +66,12 @@ def route_message(message, username, use_case=None):
     handler = handlers.get(use_case, handle_notes_reminders)
 
     # Each handler returns: (response_text, entry_data, entry_type)
-    return handler(message, username)
+    # Pass conversation history for context/memory
+    logger.info(f"Invoking handler: {handler.__name__}")
+    result = handler(message, username, conversation_history)
+    logger.info(f"Handler returned response")
+
+    return result
 
 def save_unified_entry(username, message, response, use_case, metadata=None):
     """Save a unified entry to the database"""

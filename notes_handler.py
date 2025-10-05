@@ -4,14 +4,14 @@ Notes & Reminders Handler - Specialized for note-taking and task management
 from claude_handler import get_claude_response
 import json
 
-def handle_notes_reminders(message, username):
+def handle_notes_reminders(message, username, conversation_history=None):
     """Handle notes and reminders"""
 
     # Extract note/reminder data
-    note_data = extract_note_data(message)
+    note_data = extract_note_data(message, conversation_history)
 
     # Generate response
-    response = generate_note_response(username, note_data)
+    response = generate_note_response(username, note_data, conversation_history)
 
     # Prepare metadata
     metadata = {
@@ -25,7 +25,7 @@ def handle_notes_reminders(message, username):
 
     return response, metadata, "notes_reminders"
 
-def extract_note_data(message):
+def extract_note_data(message, conversation_history=None):
     """Extract structured note data from message"""
     system_prompt = """You are a note-taking assistant. Extract information from the message.
 
@@ -64,31 +64,24 @@ Respond with ONLY valid JSON, no extra text."""
             "tags": []
         }
 
-def generate_note_response(username, note_data):
+def generate_note_response(username, note_data, conversation_history=None):
     """Generate appropriate response for note"""
-    system_prompt = f"""You are Nomi, a helpful assistant for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a short 1 sentence confirmation that:
-- Acknowledges the note/reminder
-- Mentions the summary
-- Sounds friendly and efficient
-- Ends with a checkmark emoji ✓
+CRITICAL: Keep responses VERY SHORT - max 5-6 words.
 
-Keep it concise."""
+Rules:
+- Just acknowledge: "Got it ✓" or "Saved ✓"
+- NO elaboration, NO explanations
+- End with ✓"""
 
     summary = note_data.get("summary", "note")
     has_reminder = note_data.get("has_reminder", False)
-    reminder_time = note_data.get("reminder_time", "")
 
     if has_reminder:
-        prompt = f"""User saved a note with reminder: {summary}
-Reminder time: {reminder_time}
-
-Generate a confirmation that acknowledges both the note and reminder."""
+        prompt = f"""Note saved with reminder. Confirm in max 5 words."""
     else:
-        prompt = f"""User saved a note: {summary}
+        prompt = f"""Note saved. Confirm in max 5 words."""
 
-Generate a brief confirmation."""
-
-    response = get_claude_response(prompt, system_prompt)
+    response = get_claude_response(prompt, system_prompt, conversation_history=conversation_history)
     return response.strip()

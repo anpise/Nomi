@@ -4,14 +4,14 @@ Health & Fitness Handler - Specialized for workout and health tracking
 from claude_handler import get_claude_response
 import json
 
-def handle_health_fitness(message, username):
+def handle_health_fitness(message, username, conversation_history=None):
     """Handle health and fitness related messages"""
 
     # Extract workout/health data
-    workout_data = extract_workout_data(message)
+    workout_data = extract_workout_data(message, conversation_history)
 
     # Generate response
-    response = generate_fitness_response(username, workout_data)
+    response = generate_fitness_response(username, workout_data, conversation_history)
 
     # Prepare metadata for unified entry
     metadata = {
@@ -24,7 +24,7 @@ def handle_health_fitness(message, username):
 
     return response, metadata, "health_fitness"
 
-def extract_workout_data(message):
+def extract_workout_data(message, conversation_history=None):
     """Extract structured workout data from message"""
     system_prompt = """You are a fitness tracking assistant. Extract workout information from the message.
 
@@ -44,7 +44,7 @@ Output: {"activity": "HIIT", "duration": "45 min", "intensity": "high", "calorie
 
 Respond with ONLY valid JSON, no extra text."""
 
-    response = get_claude_response(message, system_prompt)
+    response = get_claude_response(message, system_prompt, conversation_history=conversation_history)
 
     try:
         data = json.loads(response)
@@ -58,27 +58,25 @@ Respond with ONLY valid JSON, no extra text."""
             "details": message
         }
 
-def generate_fitness_response(username, workout_data):
+def generate_fitness_response(username, workout_data, conversation_history=None):
     """Generate encouraging fitness response"""
-    system_prompt = f"""You are Nomi, a supportive fitness coach for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a short, encouraging 1-2 sentence response that:
-- Celebrates their workout/activity
-- Mentions specific details (activity, duration, intensity)
-- Sounds motivating and supportive
-- Ends with a checkmark emoji ✓
+CRITICAL: Keep responses SHORT - max 8-10 words. Be concise and punchy.
 
-Keep it enthusiastic but concise."""
+Rules:
+- Direct address: "Nice!" or "You crushed it!"
+- ONE short sentence only
+- End with ✓
+- NO explanations, NO tips, NO extra encouragement
+- If they mentioned it earlier, briefly acknowledge: "You did it!" ✓"""
 
     activity = workout_data.get("activity", "workout")
     duration = workout_data.get("duration", "")
-    intensity = workout_data.get("intensity", "")
 
-    prompt = f"""{username} just completed: {activity}
-Duration: {duration}
-Intensity: {intensity}
+    prompt = f"""{username} completed: {activity} ({duration})
 
-Generate an encouraging response."""
+Respond in max 8-10 words."""
 
-    response = get_claude_response(prompt, system_prompt)
+    response = get_claude_response(prompt, system_prompt, conversation_history=conversation_history)
     return response.strip()

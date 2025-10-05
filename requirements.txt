@@ -1,4 +1,6 @@
 streamlit
-anthropic
+langchain
+langchain-anthropic
+langgraph
 python-dotenv
 pymongo

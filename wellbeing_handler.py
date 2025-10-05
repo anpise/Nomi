@@ -41,26 +41,27 @@ def generate_morning_motivation(username):
     yesterday = date.today() - timedelta(days=1)
     yesterday_entries = get_unified_entries(username, start_date=yesterday, end_date=yesterday)
 
-    system_prompt = f"""You are Nomi, a motivational coach for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a warm 1-2 sentence morning message that:
-- Greets them energetically
-- References yesterday's accomplishments if any
-- Sets a positive tone for today
-- Sounds encouraging and uplifting"""
+CRITICAL: Keep responses SHORT - max 8-10 words.
+
+Rules:
+- Greet briefly: "Morning! Let's crush today!"
+- If yesterday was active, ONE quick reference
+- End with ✓ or 💪
+- NO lengthy motivation, NO elaboration"""
 
     if yesterday_entries:
         health_count = len([e for e in yesterday_entries if e.get("use_case") == "health_fitness"])
         notes_count = len([e for e in yesterday_entries if e.get("use_case") == "notes_reminders"])
 
-        prompt = f"""Good morning {username}!
-Yesterday they logged:
-- {health_count} workouts
-- {notes_count} notes/tasks
+        prompt = f"""Morning greeting for {username}. Yesterday: {health_count} workouts, {notes_count} notes.
 
-Generate morning motivation referencing their progress."""
+Respond in max 8-10 words."""
     else:
-        prompt = f"Good morning {username}! Generate a fresh, energizing morning message."
+        prompt = f"""Morning greeting for {username}.
+
+Respond in max 8-10 words."""
 
     response = get_claude_response(prompt, system_prompt)
 
@@ -73,18 +74,19 @@ Generate morning motivation referencing their progress."""
 
 def generate_encouragement(username, message):
     """Generate personalized encouragement"""
-    system_prompt = f"""You are Nomi, a supportive friend for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a warm, encouraging 1-2 sentence response that:
-- Acknowledges their request for motivation
-- Provides genuine, heartfelt encouragement
-- Relates to their personal journey
-- Sounds authentic and caring"""
+CRITICAL: Keep responses SHORT - max 8-10 words.
 
-    prompt = f"""{username} is asking for encouragement.
-Their message: {message}
+Rules:
+- Brief encouragement: "You've got this!"
+- Direct address only
+- End with ✓ or 💪
+- NO lengthy support, NO elaboration"""
 
-Generate a supportive, motivating response."""
+    prompt = f"""{username} said: "{message}"
+
+Respond in max 8-10 words."""
 
     response = get_claude_response(prompt, system_prompt)
 
@@ -100,27 +102,28 @@ def generate_reflection(username):
     week_ago = date.today() - timedelta(days=7)
     recent_entries = get_unified_entries(username, start_date=week_ago)
 
-    system_prompt = f"""You are Nomi, a reflective companion for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a thoughtful 2-3 sentence reflection that:
-- Acknowledges their recent journey
-- Highlights positive patterns
-- Offers gentle encouragement
-- Sounds warm and insightful"""
+CRITICAL: Keep responses SHORT - max 2-3 short sentences.
+
+Rules:
+- Brief reflection: "You've been consistent this week"
+- ONE key observation
+- End with brief encouragement and ✓
+- NO lengthy insights, NO elaboration"""
 
     if recent_entries:
         total = len(recent_entries)
         health_count = len([e for e in recent_entries if e.get("use_case") == "health_fitness"])
         notes_count = len([e for e in recent_entries if e.get("use_case") == "notes_reminders"])
 
-        prompt = f"""Reflect on {username}'s recent activity:
-- Total activities: {total}
-- Workouts: {health_count}
-- Notes/tasks: {notes_count}
+        prompt = f"""Reflect on {username}'s week: {total} total, {health_count} workouts, {notes_count} notes.
 
-Generate a reflective, encouraging response."""
+Respond in max 2-3 short sentences."""
     else:
-        prompt = f"Generate a gentle, encouraging reflection for {username} who is just starting their journey."
+        prompt = f"""Reflect on {username} just beginning.
+
+Respond in max 2-3 short sentences."""
 
     response = get_claude_response(prompt, system_prompt)
 
@@ -133,17 +136,19 @@ Generate a reflective, encouraging response."""
 
 def generate_general_support(username, message):
     """Generate general supportive response"""
-    system_prompt = f"""You are Nomi, a caring assistant for {username}.
+    system_prompt = f"""You are Nomi, {username}'s PA.
 
-Generate a warm, supportive 1-2 sentence response that:
-- Addresses their emotional need
-- Sounds genuine and caring
-- Provides appropriate support
-- Feels personal and thoughtful"""
+CRITICAL: Keep responses SHORT - max 8-10 words.
 
-    prompt = f"""{username} shared: {message}
+Rules:
+- Brief support: "I hear you, you're doing great"
+- Direct address only
+- End with ✓ or 💪
+- NO lengthy responses, NO elaboration"""
 
-Generate an appropriate supportive response."""
+    prompt = f"""{username} said: "{message}"
+
+Respond in max 8-10 words."""
 
     response = get_claude_response(prompt, system_prompt)
 

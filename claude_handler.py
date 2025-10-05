@@ -1,35 +1,61 @@
 import os
-from anthropic import Anthropic
+from langchain_anthropic import ChatAnthropic
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from dotenv import load_dotenv
 import json
 from datetime import datetime
 
 load_dotenv()
 
-client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# Initialize LangChain ChatAnthropic
+llm = ChatAnthropic(
+    model=os.getenv("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+    api_key=os.getenv("ANTHROPIC_API_KEY"),
+    max_tokens=int(os.getenv("CLAUDE_LOGIN_GREETING_MAX_TOKENS", "1024"))
+)
 
-def get_claude_response(prompt, system_prompt=None, model="claude-3-5-haiku-20241022"):
-    """Get response from Claude API"""
-    # Add current date context to system prompt
-    current_date = datetime.now().strftime("%A, %B %d, %Y")
-    date_context = f"\n\nCurrent date and time context: Today is {current_date}."
+def get_claude_response(prompt, system_prompt=None, model="claude-sonnet-4-5-20250929", conversation_history=None):
+    """Get response from Claude API via LangChain with optional conversation context"""
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Add current date and time context to system prompt
+    now = datetime.now()
+    current_datetime = now.strftime("%A, %B %d, %Y at %I:%M %p")
+    date_context = f"\n\nCurrent date and time context: Today is {current_datetime}."
 
     if system_prompt:
         system_prompt = system_prompt + date_context
     else:
         system_prompt = date_context
 
-    messages = [{"role": "user", "content": prompt}]
+    # Build messages with conversation history
+    messages = []
 
-    kwargs = {
-        "model": model,
-        "max_tokens": 1024,
-        "messages": messages,
-        "system": system_prompt
-    }
+    # Add system message
+    if system_prompt:
+        messages.append(SystemMessage(content=system_prompt))
 
-    response = client.messages.create(**kwargs)
-    return response.content[0].text
+    # Add conversation history if provided (for context/memory)
+    if conversation_history:
+        logger.info(f"Adding {len(conversation_history[-8:])} messages from conversation history")
+        # Only include last few messages to avoid token limits
+        for msg in conversation_history[-8:]:  # Last 8 messages for context
+            if msg["role"] == "user":
+                messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                messages.append(AIMessage(content=msg["content"]))
+
+    # Add current prompt as latest user message
+    messages.append(HumanMessage(content=prompt))
+
+    logger.info(f"Invoking LangChain LLM with {len(messages)} messages")
+
+    # Invoke LangChain LLM
+    response = llm.invoke(messages)
+    logger.info(f"Received response from LLM: {len(response.content)} chars")
+
+    return response.content
 
 def classify_intent(message):
     """Classify user intent using Claude"""
@@ -151,22 +177,28 @@ If you know what they did yesterday, reference it briefly."""
 
 def generate_login_greeting(username, day_of_week, hints=None):
     """Generate personalized greeting on login"""
-    system_prompt = f"""You are Nomi, a supportive personal assistant for {username}.
+    # Get current time for appropriate greeting
+    current_hour = datetime.now().hour
+    if current_hour < 12:
+        time_greeting = "morning"
+    elif current_hour < 17:
+        time_greeting = "afternoon"
+    else:
+        time_greeting = "evening"
 
-Generate a warm welcome message that:
-- Greets the user by name
-- Mentions today's day ({day_of_week})
-- Provides helpful next steps from the hints provided
-- Keeps it to 2-3 sentences
-- Sounds friendly and encouraging"""
+    system_prompt = f"""You are Nomi, {username}'s personal assistant.
 
-    hints_text = ""
-    if hints:
-        hints_text = "\n\nSuggested next steps to mention:\n" + "\n".join([f"- {hint}" for hint in hints])
+Speak directly to {username} using "you/your".
 
-    prompt = f"""Welcome {username} back! Today is {day_of_week}.{hints_text}
+Generate a SHORT welcome message (1-2 sentences ONLY) that:
+- Uses appropriate time greeting (it's {time_greeting} now, NOT morning)
+- Mentions it's {day_of_week}
+- Sounds warm but BRIEF
+- NO need to list actions - just welcome them"""
 
-Generate a friendly greeting message."""
+    prompt = f"""Greet {username}. It's {time_greeting} on {day_of_week}.
+
+Give a short, warm welcome (1-2 sentences max)."""
 
     response = get_claude_response(prompt, system_prompt)
     return response.strip()
