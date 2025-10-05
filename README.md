@@ -4,6 +4,7 @@
 
 Nomi is an intelligent personal assistant powered by **LangGraph agentic architecture**. Message it about workouts, ideas, reminders, or how you're feeling—and specialized AI agents quietly turn your words into organized logs, insights, and daily reflections. Built with LangChain + LangGraph for autonomous agent routing and context-aware responses.
 
+Live Demo - https://nomi-v1.streamlit.app/
 ---
 
 ## ✨ Features
